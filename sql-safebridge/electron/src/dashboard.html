@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL-SafeBridge</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">SQL-SafeBridge</div>
+      <nav id="sidebarNav" class="nav-list">
+        <button class="nav-item active" data-section="dashboard">🏠 Dashboard</button>
+        <button class="nav-item" data-section="backups">💾 Backups</button>
+        <button class="nav-item" data-section="restore">♻️ Restore</button>
+        <button class="nav-item" data-section="history">📜 History</button>
+        <button class="nav-item" data-section="settings">⚙️ Settings</button>
+      </nav>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <h1>SQL-SafeBridge</h1>
+        <div class="topbar-actions">
+          <button id="themeToggle" class="btn ghost">🌗 Toggle theme</button>
+          <button class="icon-btn" aria-label="User settings">👤</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="section active">
+        <div class="cards-grid">
+          <article class="stat-card"><h3>Last backup status</h3><p id="lastBackupStatus">No backup yet</p></article>
+          <article class="stat-card"><h3>Total backups</h3><p id="totalBackups">0</p></article>
+          <article class="stat-card"><h3>Last restore</h3><p id="lastRestore">Never</p></article>
+          <article class="stat-card"><h3>Storage usage</h3><p id="storageUsage">0 MB</p><div class="progress"><span id="storageBar"></span></div></article>
+        </div>
+      </section>
+
+      <section id="backups" class="section">
+        <div class="section-header"><h2>Backups</h2><button id="createBackupBtn" class="btn primary">Create Backup</button></div>
+        <div id="backupLoading" class="loading hidden">Creating backup...</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Date</th><th>Size</th><th>Status</th></tr></thead>
+            <tbody id="backupTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="restore" class="section">
+        <div class="section-header"><h2>Restore</h2></div>
+        <div class="restore-controls">
+          <label for="restoreSelect">Select backup</label>
+          <select id="restoreSelect"></select>
+          <button id="restoreBtn" class="btn primary">Restore</button>
+          <div id="restoreProgress" class="loading hidden">Restoring...</div>
+        </div>
+      </section>
+
+      <section id="history" class="section">
+        <div class="section-header"><h2>History</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Action</th><th>Status</th></tr></thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="settings" class="section">
+        <h2>Settings</h2>
+        <div class="settings-card">
+          <label class="setting-row"><span>Theme</span><button id="themeToggleSettings" class="btn">Toggle theme</button></label>
+          <label class="setting-row"><span>Backup path</span><input id="backupPath" type="text" placeholder="/path/to/backups" /></label>
+          <label class="setting-row"><span>Auto-backup</span><input id="autoBackup" type="checkbox" /></label>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <dialog id="confirmModal" class="modal">
+    <h3>Confirm restore</h3>
+    <p>Restoring will overwrite your current database state. Continue?</p>
+    <div class="modal-actions">
+      <button id="cancelRestore" class="btn">Cancel</button>
+      <button id="confirmRestore" class="btn primary">Yes, Restore</button>
+    </div>
+  </dialog>
+
+  <script src="./js/api.js"></script>
+  <script src="./js/dashboard.js"></script>
+</body>
+</html>
