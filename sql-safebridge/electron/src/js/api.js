@@ -1,21 +1,27 @@
-const API_BASE = localStorage.getItem('apiBase') || 'http://127.0.0.1:8000';
+const API_BASE = localStorage.getItem('apiBase') || 'http://127.0.0.1:5000';
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Request failed: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json') ? await response.json() : { success: false, message: await response.text() };
+
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.message || `Request failed: ${response.status}`);
+    }
+    return payload;
+  } catch (error) {
+    throw new Error(error.message || 'No se pudo conectar con el backend.');
   }
-  const contentType = response.headers.get('content-type') || '';
-  return contentType.includes('application/json') ? response.json() : response.text();
 }
 
 window.api = {
-  createBackup: () => request('/backup', { method: 'POST' }),
-  restoreBackup: (name) => request('/restore', { method: 'POST', body: JSON.stringify({ name }) }),
-  getBackups: () => request('/backup'),
+  checkHealth: async () => request('/health'),
+  createBackup: async (payload) => request('/api/backup/execute', { method: 'POST', body: JSON.stringify(payload) }),
+  restoreBackup: async (payload) => request('/api/restore/execute', { method: 'POST', body: JSON.stringify(payload) }),
+  getBackups: async (payload) => request('/api/restore/list', { method: 'POST', body: JSON.stringify(payload) }),
   getLogs: () => window.electronAPI?.readLogs?.() || Promise.resolve([])
 };

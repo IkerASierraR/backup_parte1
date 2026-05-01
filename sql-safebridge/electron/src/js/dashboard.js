@@ -1,4 +1,4 @@
-const state = { backups: [], selectedBackup: null, restoring: false };
+const state = { backups: [], selectedBackup: null, restoring: false, backendReady: false };
 
 const qs = (id) => document.getElementById(id);
 
@@ -20,6 +20,18 @@ function toggleTheme() {
   applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 }
 
+
+function connectionPayload() {
+  return {
+    server: localStorage.getItem('dbServer') || '',
+    database: localStorage.getItem('dbName') || '',
+    username: localStorage.getItem('dbUser') || '',
+    password: localStorage.getItem('dbPassword') || '',
+    use_windows_auth: localStorage.getItem('useWindowsAuth') === 'true',
+    backup_directory: localStorage.getItem('backupDirectory') || ''
+  };
+}
+
 function statusBadge(status = 'in progress') {
   const cls = status.includes('success') ? 'success' : status.includes('error') ? 'error' : 'progressing';
   return `<span class="status ${cls}">${status}</span>`;
@@ -35,7 +47,7 @@ function renderBackups() {
     tr.innerHTML = `<td>${item.name}</td><td>${item.date || '-'}</td><td>${item.size || '-'}</td><td>${statusBadge(item.status || 'success')}</td>`;
     body.appendChild(tr);
     const op = document.createElement('option');
-    op.value = item.name;
+    op.value = item.path || item.name;
     op.textContent = `${item.name} (${item.date || '-'})`;
     restoreSelect.appendChild(op);
   });
@@ -49,7 +61,7 @@ function renderBackups() {
 
 async function loadBackups() {
   try {
-    const data = await window.api.getBackups();
+    const data = await window.api.getBackups(connectionPayload());
     state.backups = Array.isArray(data) ? data : (data.backups || []);
     renderBackups();
   } catch (e) { toast(`Failed to load backups: ${e.message}`, 'error'); }
@@ -59,7 +71,7 @@ async function createBackup() {
   const btn = qs('createBackupBtn');
   btn.disabled = true; qs('backupLoading').classList.remove('hidden');
   try {
-    await window.api.createBackup();
+    await window.api.createBackup(connectionPayload());
     toast('Backup created successfully', 'success');
     await loadBackups();
   } catch (e) {
@@ -94,11 +106,13 @@ function setupEvents() {
   qs('cancelRestore').addEventListener('click', () => qs('confirmModal').close());
   qs('confirmRestore').addEventListener('click', async () => {
     const selected = qs('restoreSelect').value;
+    const restoreBtn = qs('confirmRestore');
+    restoreBtn.disabled = true;
     if (!selected) return toast('Select a backup first', 'error');
     if (state.restoring) return;
     state.restoring = true; qs('restoreProgress').classList.remove('hidden'); qs('confirmModal').close();
     try {
-      await window.api.restoreBackup(selected);
+      await window.api.restoreBackup({ ...connectionPayload(), backup_file: selected });
       qs('lastRestore').textContent = new Date().toLocaleString();
       toast('Restore completed', 'success');
     } catch (e) {
@@ -106,13 +120,29 @@ function setupEvents() {
       toast(msg, 'error');
     } finally {
       state.restoring = false; qs('restoreProgress').classList.add('hidden');
+      restoreBtn.disabled = false;
     }
   });
+}
+
+async function checkBackend() {
+  try {
+    await window.api.checkHealth();
+    state.backendReady = true;
+    return true;
+  } catch (e) {
+    state.backendReady = false;
+    toast('Backend no disponible. Inicia la API para continuar.', 'error');
+    return false;
+  }
 }
 
 (async function init() {
   applyTheme(localStorage.getItem('theme') || 'light');
   setupEvents();
-  await loadBackups();
+  const ready = await checkBackend();
+  if (ready) {
+    await loadBackups();
+  }
   await loadHistory();
 })();
