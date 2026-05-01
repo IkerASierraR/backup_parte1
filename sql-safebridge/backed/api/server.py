@@ -20,8 +20,12 @@ def create_app():
     app.register_blueprint(restore_bp, url_prefix='/api')
     
     # Ruta de health check
+    @app.route('/health')
+    def health():
+        return {"success": True, "message": "API healthy", "data": {"service": "SQL-SafeBridge API"}}
+
     @app.route('/api/status')
     def status():
-        return {"status": "online", "service": "SQL-SafeBridge API"}
+        return {"success": True, "message": "API online", "data": {"service": "SQL-SafeBridge API"}}
     
     return app
